@@ -33,6 +33,13 @@ def init_db():
         print("[init_db] DATABASE_URL не задана в переменных окружения!")
         return
 
+    cities = [
+        ('Vienna', 0, 0, '', '$0.00'),
+        ('Paris', 0, 0, '', '$0.00'),
+        ('Barcelona', 0, 0, '', '$0.00'),
+        ('Prague', 0, 0, '', '$0.00')
+    ]
+
     try:
         with closing(psycopg2.connect(DATABASE_URL)) as conn:
             conn.set_client_encoding('UTF8')
@@ -55,7 +62,7 @@ def init_db():
                 c.execute('''
                     CREATE TABLE IF NOT EXISTS citys (
                         id SERIAL PRIMARY KEY,
-                        city TEXT NOT NULL,
+                        city TEXT NOT NULL UNIQUE,
                         subs INT NOT NULL DEFAULT 0,
                         posts INT NOT NULL DEFAULT 0,
                         tg_link TEXT NOT NULL DEFAULT '',
@@ -63,24 +70,17 @@ def init_db():
                     )
                 ''')
 
-                # Проверяем, есть ли записи в citys
-                c.execute('SELECT COUNT(*) FROM citys')
-                count = c.fetchone()[0]
-
-                if count == 0:
-                    cities = [
-                        ('Vienna', 0, 0, '', '$0.00'),
-                        ('Paris', 0, 0, '', '$0.00'),
-                        ('Barcelona', 0, 0, '', '$0.00'),
-                        ('Prague', 0, 0, '', '$0.00')
-                    ]
-                    c.executemany(
-                        'INSERT INTO citys (city, subs, posts, tg_link, income) VALUES (%s, %s, %s, %s, %s)',
-                        cities
-                    )
-                    print("[init_db] Таблица citys создана и заполнена начальными данными.")
-                else:
-                    print(f"[init_db] Таблица citys уже содержит {count} записей.")
+                # Для каждого города проверяем наличие и вставляем, если его нет
+                for city, subs, posts, tg_link, income in cities:
+                    c.execute('SELECT 1 FROM citys WHERE city = %s', (city,))
+                    if not c.fetchone():
+                        c.execute(
+                            'INSERT INTO citys (city, subs, posts, tg_link, income) VALUES (%s, %s, %s, %s, %s)',
+                            (city, subs, posts, tg_link, income)
+                        )
+                        print(f"[init_db] Добавлен город: {city}")
+                    else:
+                        print(f"[init_db] Город {city} уже есть в таблице.")
 
                 conn.commit()
     except Exception as e:
