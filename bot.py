@@ -53,8 +53,11 @@ async def start_web():
     await server.serve()
 
 # === Main Run ===
-if __name__ == "__main__":
-    asyncio.run(asyncio.gather(
+async def main():
+    await asyncio.gather(
         start_bot(),
         start_web()
-    ))
+    )
+
+if __name__ == "__main__":
+    asyncio.run(main())
