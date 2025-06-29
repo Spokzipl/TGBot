@@ -44,6 +44,10 @@ def init_db():
         with closing(psycopg2.connect(DATABASE_URL)) as conn:
             conn.set_client_encoding('UTF8')
             with conn.cursor() as c:
+                # Если нужно сбросить таблицу citys (потом можно закомментировать)
+                # c.execute('DROP TABLE IF EXISTS citys CASCADE;')
+                # conn.commit()
+
                 # Таблица для логов бота
                 c.execute('''
                     CREATE TABLE IF NOT EXISTS bot_logs (
@@ -58,7 +62,7 @@ def init_db():
                 ''')
                 print("[init_db] Таблица bot_logs проверена/создана.")
 
-                # Таблица citys с городами и данными
+                # Таблица citys с городами и данными, добавлено created_at
                 c.execute('''
                     CREATE TABLE IF NOT EXISTS citys (
                         id SERIAL PRIMARY KEY,
@@ -66,16 +70,20 @@ def init_db():
                         subs INT NOT NULL DEFAULT 0,
                         posts INT NOT NULL DEFAULT 0,
                         tg_link TEXT NOT NULL DEFAULT '',
-                        income TEXT NOT NULL DEFAULT '$0.00'
+                        income TEXT NOT NULL DEFAULT '$0.00',
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 ''')
 
-                # Для каждого города проверяем наличие и вставляем, если его нет
+                # Вставка городов, если их нет
                 for city, subs, posts, tg_link, income in cities:
                     c.execute('SELECT 1 FROM citys WHERE city = %s', (city,))
                     if not c.fetchone():
                         c.execute(
-                            'INSERT INTO citys (city, subs, posts, tg_link, income) VALUES (%s, %s, %s, %s, %s)',
+                            '''
+                            INSERT INTO citys (city, subs, posts, tg_link, income)
+                            VALUES (%s, %s, %s, %s, %s)
+                            ''',
                             (city, subs, posts, tg_link, income)
                         )
                         print(f"[init_db] Добавлен город: {city}")
@@ -84,7 +92,7 @@ def init_db():
 
                 conn.commit()
 
-                # Синхронизируем sequence, чтобы id не конфликтовали при вставке
+                # Синхронизация sequence
                 c.execute(
                     "SELECT setval(pg_get_serial_sequence('citys', 'id'), COALESCE((SELECT MAX(id) FROM citys), 1), true)"
                 )
