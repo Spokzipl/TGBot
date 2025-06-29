@@ -4,11 +4,11 @@
   <meta charset="UTF-8" />
   <title>Города</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  
-  <!-- Tailwind CSS через CDN -->
+
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
 
-  <!-- React и ReactDOM через CDN -->
+  <!-- React и ReactDOM -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 
@@ -16,12 +16,10 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
-
-  <!-- Контейнер для React -->
-  <div id="root"></div>
+  <div id="root" class="w-full h-full"></div>
 
   <script type="text/babel">
-    const { useEffect } = React;
+    const { useState, useEffect } = React;
 
     const cities = [
       { name: 'Вена', image: '/Static/Vienna.png' },
@@ -30,35 +28,98 @@
       { name: 'Прага', image: '/Static/Prague.png' },
     ];
 
+    const Sidebar = ({ currentPage, setCurrentPage }) => {
+      const pages = ['Dashboard', 'Posts', 'Charts', 'Settings', 'Finance'];
+
+      return (
+        <div className="w-60 bg-white h-full shadow-md flex flex-col p-4">
+          <h2 className="text-xl font-bold mb-6">Меню</h2>
+          {pages.map((page) => (
+            <button
+              key={page}
+              className={`text-left py-2 px-4 rounded-lg mb-2 hover:bg-gray-100 transition ${
+                currentPage === page ? 'bg-gray-200 font-semibold' : ''
+              }`}
+              onClick={() => setCurrentPage(page)}
+            >
+              {page}
+            </button>
+          ))}
+        </div>
+      );
+    };
+
+    const Dashboard = () => {
+      const stats = [
+        { label: 'Followers', icon: '👥', value: '1.2K' },
+        { label: 'Posts', icon: '📝', value: '340' },
+        { label: 'Earn', icon: '💰', value: '$1200' },
+      ];
+
+      return (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {stats.map((stat) => (
+            <div key={stat.label} className="bg-white rounded-xl p-4 flex items-center shadow">
+              <div className="text-3xl mr-4">{stat.icon}</div>
+              <div>
+                <div className="text-sm text-gray-500">{stat.label}</div>
+                <div className="text-xl font-bold">{stat.value}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    };
+
+    const Placeholder = ({ title }) => (
+      <div className="text-xl text-gray-600 font-semibold">{title} страница (в разработке)</div>
+    );
+
     function App() {
+      const [selectedCity, setSelectedCity] = useState(null);
+      const [currentPage, setCurrentPage] = useState('Dashboard');
+
       useEffect(() => {
         if (window.Telegram?.WebApp) {
           window.Telegram.WebApp.ready();
         }
       }, []);
 
-      const sendCity = (city) => {
+      const handleCityClick = (city) => {
+        setSelectedCity(city);
         window.Telegram?.WebApp?.sendData(city);
       };
 
+      if (!selectedCity) {
+        return (
+          <div className="grid grid-cols-2 gap-4 w-full max-w-md">
+            {cities.map((city) => (
+              <div
+                key={city.name}
+                onClick={() => handleCityClick(city.name)}
+                className="bg-white rounded-2xl p-4 shadow hover:shadow-md transition cursor-pointer flex flex-col items-center"
+              >
+                <img src={city.image} alt={city.name} className="w-20 h-20 mb-3 rounded-xl" />
+                <span className="text-lg font-semibold">{city.name}</span>
+              </div>
+            ))}
+          </div>
+        );
+      }
+
       return (
-        <div className="grid grid-cols-2 gap-4 w-full max-w-md">
-          {cities.map((city) => (
-            <div
-              key={city.name}
-              onClick={() => sendCity(city.name)}
-              className="bg-white rounded-2xl p-4 shadow hover:shadow-md transition cursor-pointer flex flex-col items-center"
-            >
-              <img src={city.image} alt={city.name} className="w-20 h-20 mb-3 rounded-xl" />
-              <span className="text-lg font-semibold">{city.name}</span>
-            </div>
-          ))}
+        <div className="flex w-full h-screen">
+          <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} />
+          <div className="flex-1 p-6 overflow-y-auto">
+            <h1 className="text-2xl font-bold mb-6">{selectedCity} — {currentPage}</h1>
+            {currentPage === 'Dashboard' && <Dashboard />}
+            {currentPage !== 'Dashboard' && <Placeholder title={currentPage} />}
+          </div>
         </div>
       );
     }
 
     ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   </script>
-
 </body>
 </html>
