@@ -1,68 +1,92 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Города</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body {
       margin: 0;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #f5f5f5;
       display: flex;
       flex-direction: column;
       align-items: center;
-      background-color: #f5f5f5;
-    }
-
-    .header-image {
-      width: 100%;
-      height: 200px;
-      object-fit: cover;
+      min-height: 100vh;
+      padding: 16px;
+      box-sizing: border-box;
     }
 
     .tiles {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      padding: 16px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
       width: 100%;
-      box-sizing: border-box;
+      max-width: 600px;
     }
 
     .tile {
-      background-color: #ffffff;
-      border-radius: 16px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      padding: 24px;
-      text-align: center;
-      font-size: 18px;
-      font-weight: 600;
-      transition: background-color 0.2s;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
       cursor: pointer;
+      padding: 20px;
+      text-align: center;
+      user-select: none;
+      transition: background-color 0.25s ease, box-shadow 0.25s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
     }
 
     .tile:hover {
-      background-color: #e0e0e0;
+      background-color: #eaeaea;
+      box-shadow: 0 6px 14px rgba(0,0,0,0.18);
+    }
+
+    .tile img {
+      width: 80px;
+      height: 80px;
+      object-fit: contain;
+      margin-bottom: 12px;
+      border-radius: 16px;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+    }
+
+    .tile span {
+      font-weight: 600;
+      font-size: 18px;
+      color: #222;
     }
   </style>
 </head>
 <body>
 
-  <img class="header-image" src="https://your-site.com/images/banner.jpg" alt="Города">
-
+  <!-- Плитки с городами -->
   <div class="tiles">
-    <div class="tile" onclick="sendCity('Вена')">Вена</div>
-    <div class="tile" onclick="sendCity('Париж')">Париж</div>
-    <div class="tile" onclick="sendCity('Барселона')">Барселона</div>
-    <div class="tile" onclick="sendCity('Прага')">Прага</div>
+    <div class="tile" onclick="sendCity('Вена')">
+      <img src="/static/Vienna.png" alt="Вена" />
+      <span>Вена</span>
+    </div>
+    <div class="tile" onclick="sendCity('Париж')">
+      <img src="/static/Paris.jpg" alt="Париж" />
+      <span>Париж</span>
+    </div>
+    <div class="tile" onclick="sendCity('Барселона')">
+      <span>Барселона</span>
+    </div>
+    <div class="tile" onclick="sendCity('Прага')">
+      <span>Прага</span>
+    </div>
   </div>
 
   <script>
     function sendCity(city) {
-      Telegram.WebApp.sendData(city); // Отправляет данные обратно в бота
+      Telegram.WebApp.sendData(city);
     }
-
-    Telegram.WebApp.ready(); // Инициализация
+    Telegram.WebApp.ready();
   </script>
+
 </body>
 </html>
