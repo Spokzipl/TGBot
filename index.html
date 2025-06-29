@@ -8,7 +8,7 @@
     body {
       margin: 0;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background-color: #f5f5f5;
+      background-color: #e0e0e0;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -26,14 +26,14 @@
     }
 
     .tile {
-      background: white;
+      background: #d6d6d6;
       border-radius: 20px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
       cursor: pointer;
       padding: 20px;
       text-align: center;
       user-select: none;
-      transition: background-color 0.25s ease, box-shadow 0.25s ease;
+      transition: background-color 0.3s ease, box-shadow 0.3s ease;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -41,8 +41,8 @@
     }
 
     .tile:hover {
-      background-color: #eaeaea;
-      box-shadow: 0 6px 14px rgba(0,0,0,0.18);
+      background-color: #c4c4c4;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.2);
     }
 
     .tile img {
@@ -51,7 +51,7 @@
       object-fit: contain;
       margin-bottom: 12px;
       border-radius: 16px;
-      box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
     }
 
     .tile span {
@@ -63,20 +63,21 @@
 </head>
 <body>
 
-  <!-- Плитки с городами -->
   <div class="tiles">
     <div class="tile" onclick="sendCity('Вена')">
       <img src="/Static/Vienna.png" alt="Вена" />
       <span>Вена</span>
     </div>
     <div class="tile" onclick="sendCity('Париж')">
-      <img src="/Static/Paris.jpg" alt="Париж" />
+      <img src="/Static/Paris.png" alt="Париж" />
       <span>Париж</span>
     </div>
     <div class="tile" onclick="sendCity('Барселона')">
+      <img src="/Static/Barcelona.png" alt="Барселона" />
       <span>Барселона</span>
     </div>
     <div class="tile" onclick="sendCity('Прага')">
+      <img src="/Static/Prague.png" alt="Прага" />
       <span>Прага</span>
     </div>
   </div>
