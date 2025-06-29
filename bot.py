@@ -44,9 +44,8 @@ def init_db():
         with closing(psycopg2.connect(DATABASE_URL)) as conn:
             conn.set_client_encoding('UTF8')
             with conn.cursor() as c:
-                # Если нужно сбросить таблицу citys (потом можно закомментировать)
-                # c.execute('DROP TABLE IF EXISTS citys CASCADE;')
-                # conn.commit()
+                # УДАЛЕНИЕ таблицы citys (чтобы "снести" базу). Потом можно закомментировать эту строку
+                c.execute('DROP TABLE IF EXISTS citys')
 
                 # Таблица для логов бота
                 c.execute('''
@@ -62,7 +61,7 @@ def init_db():
                 ''')
                 print("[init_db] Таблица bot_logs проверена/создана.")
 
-                # Таблица citys с городами и данными, добавлено created_at
+                # Таблица citys с городами и данными + поле created_at
                 c.execute('''
                     CREATE TABLE IF NOT EXISTS citys (
                         id SERIAL PRIMARY KEY,
@@ -75,15 +74,13 @@ def init_db():
                     )
                 ''')
 
-                # Вставка городов, если их нет
+                # Для каждого города проверяем наличие и вставляем, если его нет
                 for city, subs, posts, tg_link, income in cities:
                     c.execute('SELECT 1 FROM citys WHERE city = %s', (city,))
                     if not c.fetchone():
                         c.execute(
-                            '''
-                            INSERT INTO citys (city, subs, posts, tg_link, income)
-                            VALUES (%s, %s, %s, %s, %s)
-                            ''',
+                            '''INSERT INTO citys (city, subs, posts, tg_link, income, created_at)
+                               VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP)''',
                             (city, subs, posts, tg_link, income)
                         )
                         print(f"[init_db] Добавлен город: {city}")
@@ -91,13 +88,6 @@ def init_db():
                         print(f"[init_db] Город {city} уже есть в таблице.")
 
                 conn.commit()
-
-                # Синхронизация sequence
-                c.execute(
-                    "SELECT setval(pg_get_serial_sequence('citys', 'id'), COALESCE((SELECT MAX(id) FROM citys), 1), true)"
-                )
-                conn.commit()
-
     except Exception as e:
         print(f"[init_db] Ошибка при работе с БД: {e}")
 
