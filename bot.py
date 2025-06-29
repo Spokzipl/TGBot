@@ -5,22 +5,22 @@ from aiogram.enums import ParseMode
 from aiogram.types import WebAppInfo, KeyboardButton, ReplyKeyboardMarkup
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.client.default import DefaultBotProperties
-from aiogram.filters import Command  # ✅ ВАЖНО: импорт фильтра
+from aiogram.filters import Command
 
+from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+import uvicorn
+
+# === Telegram Bot Setup ===
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-if not TOKEN:
-    raise ValueError("TELEGRAM_BOT_TOKEN is not set in environment variables")
 
-bot = Bot(
-    token=TOKEN,
-    default=DefaultBotProperties(parse_mode=ParseMode.HTML)
-)
-
+bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher(storage=MemoryStorage())
 router = Router()
 dp.include_router(router)
 
-@router.message(Command("start"))  # ✅ правильно!
+@router.message(Command("start"))
 async def cmd_start(message: types.Message):
     kb = ReplyKeyboardMarkup(
         keyboard=[
@@ -28,10 +28,33 @@ async def cmd_start(message: types.Message):
         ],
         resize_keyboard=True
     )
-    await message.answer("Привет! Вот кнопки с городами.", reply_markup=kb)
+    await message.answer("Привет! Вот кнопка для запуска WebApp.", reply_markup=kb)
 
-async def main():
+async def start_bot():
     await dp.start_polling(bot)
 
+# === FastAPI Setup ===
+app = FastAPI()
+
+# Статические файлы и главная страница (если есть)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+@app.get("/")
+async def root():
+    return FileResponse("index.html")
+
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+async def start_web():
+    config = uvicorn.Config(app, host="0.0.0.0", port=8000)
+    server = uvicorn.Server(config)
+    await server.serve()
+
+# === Main Run ===
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(asyncio.gather(
+        start_bot(),
+        start_web()
+    ))
