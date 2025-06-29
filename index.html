@@ -19,7 +19,7 @@
   <div id="root" class="w-full h-full"></div>
 
   <script type="text/babel">
-    const { useState, useEffect } = React;
+    const { useState, useEffect, useRef } = React;
 
     const cities = [
       { name: 'Вена', image: '/Static/Vienna.png' },
@@ -28,12 +28,82 @@
       { name: 'Прага', image: '/Static/Prague.png' },
     ];
 
-    const Sidebar = ({ currentPage, setCurrentPage }) => {
+    const Sidebar = ({ currentCity, setCurrentCity, currentPage, setCurrentPage, cities }) => {
+      const [dropdownOpen, setDropdownOpen] = useState(false);
+      const dropdownRef = useRef(null);
+
+      // Закрыть дропдаун при клике вне его
+      useEffect(() => {
+        const handleClickOutside = (event) => {
+          if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+            setDropdownOpen(false);
+          }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+          document.removeEventListener('mousedown', handleClickOutside);
+        };
+      }, []);
+
+      const toggleDropdown = () => setDropdownOpen(!dropdownOpen);
+
+      const onSelectCity = (city) => {
+        setCurrentCity(city);
+        setDropdownOpen(false);
+        setCurrentPage('Dashboard');
+      };
+
       const pages = ['Dashboard', 'Posts', 'Charts', 'Settings', 'Finance'];
 
       return (
         <div className="w-60 bg-white h-full shadow-md flex flex-col p-4">
-          <h2 className="text-xl font-bold mb-6">Меню</h2>
+          {/* Кнопка выбора города */}
+          <div className="relative mb-6" ref={dropdownRef}>
+            <button
+              onClick={toggleDropdown}
+              className="w-full text-left bg-gray-100 rounded-lg px-4 py-2 flex justify-between items-center hover:bg-gray-200"
+              aria-expanded={dropdownOpen}
+              aria-haspopup="listbox"
+            >
+              {currentCity}
+              <svg
+                className={`w-4 h-4 ml-2 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {dropdownOpen && (
+              <ul
+                className="absolute z-10 mt-1 w-full bg-white border rounded shadow-md max-h-48 overflow-auto"
+                role="listbox"
+                tabIndex={-1}
+              >
+                {cities.map((city) => (
+                  <li
+                    key={city.name}
+                    onClick={() => onSelectCity(city.name)}
+                    className="px-4 py-2 hover:bg-gray-200 cursor-pointer"
+                    role="option"
+                    aria-selected={city.name === currentCity}
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        onSelectCity(city.name);
+                      }
+                    }}
+                  >
+                    {city.name}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {/* Меню страниц */}
           {pages.map((page) => (
             <button
               key={page}
@@ -109,7 +179,13 @@
 
       return (
         <div className="flex w-full h-screen">
-          <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} />
+          <Sidebar
+            currentCity={selectedCity}
+            setCurrentCity={setSelectedCity}
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+            cities={cities}
+          />
           <div className="flex-1 p-6 overflow-y-auto">
             <h1 className="text-2xl font-bold mb-6">{selectedCity} — {currentPage}</h1>
             {currentPage === 'Dashboard' && <Dashboard />}
