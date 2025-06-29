@@ -1,5 +1,7 @@
 import os
 import asyncio
+import psycopg2
+from contextlib import closing
 from aiogram import Bot, Dispatcher, types, Router
 from aiogram.enums import ParseMode
 from aiogram.types import WebAppInfo, KeyboardButton, ReplyKeyboardMarkup
@@ -14,6 +16,7 @@ import uvicorn
 
 # === Config ===
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Список ID админов из переменной окружения
 ADMINS_TG = os.getenv("ADMINS_TG", "")
@@ -25,6 +28,52 @@ ALLOW_ALL_USERS_BOT = os.getenv("ALLOW_ALL_USERS_BOT", "false").lower() == "true
 def is_user_allowed(user_id: int) -> bool:
     return ALLOW_ALL_USERS_BOT or user_id in ALLOWED_ADMINS
 
+def init_db():
+    if not DATABASE_URL:
+        print("[init_db] DATABASE_URL не задана в переменных окружения!")
+        return
+
+    try:
+        with closing(psycopg2.connect(DATABASE_URL)) as conn:
+            conn.set_client_encoding('UTF8')
+            with conn.cursor() as c:
+                c.execute('''
+                    CREATE TABLE IF NOT EXISTS bot_logs (
+                        id SERIAL PRIMARY KEY,
+                        tg_id BIGINT NOT NULL,
+                        username TEXT,
+                        full_name TEXT,
+                        text TEXT,
+                        has_access BOOLEAN,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                ''')
+                conn.commit()
+                print("[init_db] Таблица bot_logs проверена/создана.")
+    except Exception as e:
+        print(f"[init_db] Ошибка при создании таблицы: {e}")
+
+def log_message_to_db(message: types.Message, has_access: bool):
+    if not DATABASE_URL:
+        return
+    try:
+        with closing(psycopg2.connect(DATABASE_URL)) as conn:
+            conn.set_client_encoding('UTF8')
+            with conn.cursor() as c:
+                c.execute(
+                    "INSERT INTO bot_logs (tg_id, username, full_name, text, has_access) VALUES (%s, %s, %s, %s, %s)",
+                    (
+                        message.from_user.id,
+                        message.from_user.username if message.from_user.username else None,
+                        f"{message.from_user.first_name or ''} {message.from_user.last_name or ''}".strip(),
+                        message.text,
+                        has_access,
+                    )
+                )
+                conn.commit()
+    except Exception as e:
+        print(f"[log_message_to_db] Ошибка записи лога: {e}")
+
 # === Telegram Bot Setup ===
 bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher(storage=MemoryStorage())
@@ -33,7 +82,9 @@ dp.include_router(router)
 
 @router.message(Command("start"))
 async def cmd_start(message: types.Message):
-    if not is_user_allowed(message.from_user.id):
+    allowed = is_user_allowed(message.from_user.id)
+    log_message_to_db(message, allowed)
+    if not allowed:
         await message.answer("⛔️ У вас нет доступа к этому боту.")
         return
 
@@ -44,6 +95,12 @@ async def cmd_start(message: types.Message):
         resize_keyboard=True
     )
     await message.answer("Привет! Вот кнопка для запуска WebApp.", reply_markup=kb)
+
+# Логируем все сообщения (не только /start)
+@router.message()
+async def log_all_messages(message: types.Message):
+    allowed = is_user_allowed(message.from_user.id)
+    log_message_to_db(message, allowed)
 
 async def start_bot():
     await dp.start_polling(bot)
@@ -68,6 +125,7 @@ async def start_web():
 
 # === Main Run ===
 async def main():
+    init_db()  # Проверяем и создаём таблицу при старте
     await asyncio.gather(
         start_bot(),
         start_web()
