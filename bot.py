@@ -1,19 +1,30 @@
-from aiogram import Bot, Dispatcher, executor, types
 import os
+import asyncio
+from aiogram import Bot, Dispatcher, types
+from aiogram.types import WebAppInfo, KeyboardButton, ReplyKeyboardMarkup
+from aiogram.enums import ParseMode
+from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram import Router
 
-API_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")  # Токен бота из BotFather
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+bot = Bot(token=TOKEN, parse_mode=ParseMode.HTML)
+dp = Dispatcher(storage=MemoryStorage())
 
-bot = Bot(token=API_TOKEN)
-dp = Dispatcher(bot)
+router = Router()
+dp.include_router(router)
 
-@dp.message_handler(commands=['start'])
-async def send_welcome(message: types.Message):
-    await message.answer("Привет! Вот кнопки с городами.", reply_markup=types.ReplyKeyboardMarkup(
+@router.message(commands=["start"])
+async def cmd_start(message: types.Message):
+    kb = ReplyKeyboardMarkup(
         keyboard=[
-            [types.KeyboardButton(text="Открыть Web App", web_app=types.WebAppInfo(url="https://твой-сервер.railway.app/"))]
+            [KeyboardButton(text="Открыть Web App", web_app=WebAppInfo(url="https://твой-проект.railway.app/"))]
         ],
         resize_keyboard=True
-    ))
+    )
+    await message.answer("Привет! Вот кнопки с городами.", reply_markup=kb)
+
+async def main():
+    await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    executor.start_polling(dp, skip_updates=True)
+    asyncio.run(main())
