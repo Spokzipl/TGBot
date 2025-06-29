@@ -37,7 +37,7 @@ async def start_bot():
 app = FastAPI()
 
 # Статические файлы и главная страница (если есть)
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/Static", StaticFiles(directory="Static"), name="Static")
 
 @app.get("/")
 async def root():
