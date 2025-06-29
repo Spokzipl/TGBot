@@ -21,7 +21,7 @@ app.get('/api/city/:name', async (req, res) => {
   const cityName = req.params.name;
 
   try {
-    const query = 'SELECT subs, posts, income FROM cities WHERE city = $1';
+    const query = 'SELECT subs, posts, income FROM citys WHERE city = $1';
     const result = await pool.query(query, [cityName]);
 
     if (result.rows.length > 0) {
