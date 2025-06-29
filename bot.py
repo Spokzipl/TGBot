@@ -44,8 +44,6 @@ def init_db():
         with closing(psycopg2.connect(DATABASE_URL)) as conn:
             conn.set_client_encoding('UTF8')
             with conn.cursor() as c:
-                # УДАЛЕНИЕ таблицы citys (чтобы "снести" базу). Потом можно закомментировать эту строку
-                c.execute('DROP TABLE IF EXISTS citys')
 
                 # Таблица для логов бота
                 c.execute('''
