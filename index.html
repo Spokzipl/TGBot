@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Города</title>
+  <title>Города с Dashboard и Posts</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <!-- Tailwind CSS -->
@@ -12,14 +12,14 @@
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 
-  <!-- Babel для JSX -->
+  <!-- Babel -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
-  <div id="root" class="w-full h-full"></div>
+  <div id="root" class="w-full h-full max-w-6xl"></div>
 
   <script type="text/babel">
-    const { useState, useEffect, useRef } = React;
+    const { useState, useEffect } = React;
 
     const cities = [
       { name: 'Вена', image: '/Static/Vienna.png' },
@@ -28,73 +28,34 @@
       { name: 'Прага', image: '/Static/Prague.png' },
     ];
 
-    const Sidebar = ({ currentCity, setCurrentCity, currentPage, setCurrentPage, cities }) => {
-      const [dropdownOpen, setDropdownOpen] = useState(false);
-      const dropdownRef = useRef(null);
-
-      // Закрыть дропдаун при клике вне его
-      useEffect(() => {
-        const handleClickOutside = (event) => {
-          if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-            setDropdownOpen(false);
-          }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-          document.removeEventListener('mousedown', handleClickOutside);
-        };
-      }, []);
-
-      const toggleDropdown = () => setDropdownOpen(!dropdownOpen);
-
-      const onSelectCity = (city) => {
-        setCurrentCity(city);
-        setDropdownOpen(false);
-        setCurrentPage('Dashboard');
-      };
-
+    const Sidebar = ({ currentPage, setCurrentPage, selectedCity, setSelectedCity }) => {
       const pages = ['Dashboard', 'Posts', 'Charts', 'Settings', 'Finance'];
+      const [dropdownOpen, setDropdownOpen] = useState(false);
 
       return (
-        <div className="w-60 bg-white h-full shadow-md flex flex-col p-4">
-          {/* Кнопка выбора города */}
-          <div className="relative mb-6" ref={dropdownRef}>
+        <div className="w-72 bg-white h-full shadow-md flex flex-col p-4">
+          {/* Город с выпадающим меню */}
+          <div className="mb-6 relative">
             <button
-              onClick={toggleDropdown}
-              className="w-full text-left bg-gray-100 rounded-lg px-4 py-2 flex justify-between items-center hover:bg-gray-200"
-              aria-expanded={dropdownOpen}
-              aria-haspopup="listbox"
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              className="w-full flex justify-between items-center px-4 py-2 bg-gray-100 rounded cursor-pointer hover:bg-gray-200 transition"
             >
-              {currentCity}
+              <span className="font-semibold">{selectedCity}</span>
               <svg
-                className={`w-4 h-4 ml-2 transition-transform ${dropdownOpen ? 'rotate-180' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+                className={`w-5 h-5 transform transition-transform ${dropdownOpen ? 'rotate-180' : ''}`}
+                fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-
             {dropdownOpen && (
-              <ul
-                className="absolute z-10 mt-1 w-full bg-white border rounded shadow-md max-h-48 overflow-auto"
-                role="listbox"
-                tabIndex={-1}
-              >
-                {cities.map((city) => (
+              <ul className="absolute left-0 right-0 bg-white border rounded shadow mt-1 z-10 max-h-48 overflow-auto">
+                {cities.map(city => (
                   <li
                     key={city.name}
-                    onClick={() => onSelectCity(city.name)}
-                    className="px-4 py-2 hover:bg-gray-200 cursor-pointer"
-                    role="option"
-                    aria-selected={city.name === currentCity}
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        onSelectCity(city.name);
-                      }
-                    }}
+                    onClick={() => { setSelectedCity(city.name); setDropdownOpen(false); setCurrentPage('Dashboard'); }}
+                    className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
                   >
                     {city.name}
                   </li>
@@ -103,18 +64,20 @@
             )}
           </div>
 
-          {/* Меню страниц */}
-          {pages.map((page) => (
-            <button
-              key={page}
-              className={`text-left py-2 px-4 rounded-lg mb-2 hover:bg-gray-100 transition ${
-                currentPage === page ? 'bg-gray-200 font-semibold' : ''
-              }`}
-              onClick={() => setCurrentPage(page)}
-            >
-              {page}
-            </button>
-          ))}
+          {/* Меню */}
+          <nav className="flex flex-col gap-2">
+            {pages.map(page => (
+              <button
+                key={page}
+                onClick={() => setCurrentPage(page)}
+                className={`text-left py-2 px-4 rounded-lg hover:bg-gray-100 transition ${
+                  currentPage === page ? 'bg-gray-200 font-semibold' : ''
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+          </nav>
         </div>
       );
     };
@@ -141,6 +104,96 @@
       );
     };
 
+    // Моковые данные постов за 24 часа
+    const mockPosts = [
+      { id: 1, title_ru: 'Пост №1: Новости Вены', approved: false, declined: false },
+      { id: 2, title_ru: 'Пост №2: События в Париже', approved: false, declined: false },
+      { id: 3, title_ru: 'Пост №3: Культура Барселоны', approved: false, declined: false },
+    ];
+
+    const Posts = () => {
+      const [posts, setPosts] = useState(mockPosts);
+      const [editingPost, setEditingPost] = useState(null);
+      const [translatedText, setTranslatedText] = useState('');
+
+      const declinePost = (id) => {
+        setPosts(posts.map(p => p.id === id ? { ...p, declined: true } : p));
+      };
+
+      const approvePost = (post) => {
+        // Имитация вызова перевода OpenAI
+        setEditingPost(post);
+        setTranslatedText(`Перевод поста "${post.title_ru}" (заглушка)`);
+      };
+
+      const publishPost = () => {
+        // После публикации убираем пост из списка
+        setPosts(posts.filter(p => p.id !== editingPost.id));
+        setEditingPost(null);
+      };
+
+      if (editingPost) {
+        return (
+          <div>
+            <h2 className="text-xl font-bold mb-4">Редактирование перевода: {editingPost.title_ru}</h2>
+            <textarea
+              rows={10}
+              className="w-full p-2 border rounded"
+              value={translatedText}
+              onChange={e => setTranslatedText(e.target.value)}
+            />
+            <div className="mt-4 flex gap-2">
+              <button
+                className="bg-green-500 text-white px-4 py-2 rounded"
+                onClick={publishPost}
+              >
+                Опубликовать сразу
+              </button>
+              <button
+                className="bg-gray-300 px-4 py-2 rounded"
+                onClick={() => setEditingPost(null)}
+              >
+                Отмена
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div>
+          <h2 className="text-xl font-bold mb-4">Новые посты за 24 часа</h2>
+          {posts.filter(p => !p.declined).length === 0 && <div>Новых постов нет</div>}
+          <ul>
+            {posts.filter(p => !p.declined).map(post => (
+              <li
+                key={post.id}
+                className="mb-3 p-3 bg-white rounded shadow flex justify-between items-center"
+              >
+                <div>{post.title_ru}</div>
+                <div className="flex gap-2">
+                  <button
+                    className="bg-green-500 text-white px-3 py-1 rounded"
+                    title="Апрув"
+                    onClick={() => approvePost(post)}
+                  >
+                    ✔
+                  </button>
+                  <button
+                    className="bg-red-500 text-white px-3 py-1 rounded"
+                    title="Деклайн"
+                    onClick={() => declinePost(post.id)}
+                  >
+                    ✖
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      );
+    };
+
     const Placeholder = ({ title }) => (
       <div className="text-xl text-gray-600 font-semibold">{title} страница (в разработке)</div>
     );
@@ -155,18 +208,13 @@
         }
       }, []);
 
-      const handleCityClick = (city) => {
-        setSelectedCity(city);
-        window.Telegram?.WebApp?.sendData(city);
-      };
-
       if (!selectedCity) {
         return (
           <div className="grid grid-cols-2 gap-4 w-full max-w-md">
             {cities.map((city) => (
               <div
                 key={city.name}
-                onClick={() => handleCityClick(city.name)}
+                onClick={() => { setSelectedCity(city.name); setCurrentPage('Dashboard'); }}
                 className="bg-white rounded-2xl p-4 shadow hover:shadow-md transition cursor-pointer flex flex-col items-center"
               >
                 <img src={city.image} alt={city.name} className="w-20 h-20 mb-3 rounded-xl" />
@@ -178,19 +226,19 @@
       }
 
       return (
-        <div className="flex w-full h-screen">
+        <div className="flex w-full h-screen bg-gray-50">
           <Sidebar
-            currentCity={selectedCity}
-            setCurrentCity={setSelectedCity}
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
-            cities={cities}
+            selectedCity={selectedCity}
+            setSelectedCity={setSelectedCity}
           />
-          <div className="flex-1 p-6 overflow-y-auto">
+          <main className="flex-1 p-6 overflow-y-auto">
             <h1 className="text-2xl font-bold mb-6">{selectedCity} — {currentPage}</h1>
             {currentPage === 'Dashboard' && <Dashboard />}
-            {currentPage !== 'Dashboard' && <Placeholder title={currentPage} />}
-          </div>
+            {currentPage === 'Posts' && <Posts />}
+            {currentPage !== 'Dashboard' && currentPage !== 'Posts' && <Placeholder title={currentPage} />}
+          </main>
         </div>
       );
     }
