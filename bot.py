@@ -37,6 +37,7 @@ def init_db():
         with closing(psycopg2.connect(DATABASE_URL)) as conn:
             conn.set_client_encoding('UTF8')
             with conn.cursor() as c:
+                # Таблица для логов бота
                 c.execute('''
                     CREATE TABLE IF NOT EXISTS bot_logs (
                         id SERIAL PRIMARY KEY,
@@ -48,10 +49,42 @@ def init_db():
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 ''')
-                conn.commit()
                 print("[init_db] Таблица bot_logs проверена/создана.")
+
+                # Таблица citys с городами и данными
+                c.execute('''
+                    CREATE TABLE IF NOT EXISTS citys (
+                        id SERIAL PRIMARY KEY,
+                        city TEXT NOT NULL,
+                        subs INT NOT NULL DEFAULT 0,
+                        posts INT NOT NULL DEFAULT 0,
+                        tg_link TEXT NOT NULL DEFAULT '',
+                        income TEXT NOT NULL DEFAULT '$0.00'
+                    )
+                ''')
+
+                # Проверяем, есть ли записи в citys
+                c.execute('SELECT COUNT(*) FROM citys')
+                count = c.fetchone()[0]
+
+                if count == 0:
+                    cities = [
+                        ('Vienna', 0, 0, '', '$0.00'),
+                        ('Paris', 0, 0, '', '$0.00'),
+                        ('Barcelona', 0, 0, '', '$0.00'),
+                        ('Prague', 0, 0, '', '$0.00')
+                    ]
+                    c.executemany(
+                        'INSERT INTO citys (city, subs, posts, tg_link, income) VALUES (%s, %s, %s, %s, %s)',
+                        cities
+                    )
+                    print("[init_db] Таблица citys создана и заполнена начальными данными.")
+                else:
+                    print(f"[init_db] Таблица citys уже содержит {count} записей.")
+
+                conn.commit()
     except Exception as e:
-        print(f"[init_db] Ошибка при создании таблицы: {e}")
+        print(f"[init_db] Ошибка при работе с БД: {e}")
 
 def log_message_to_db(message: types.Message, has_access: bool):
     if not DATABASE_URL:
@@ -125,7 +158,7 @@ async def start_web():
 
 # === Main Run ===
 async def main():
-    init_db()  # Проверяем и создаём таблицу при старте
+    init_db()  # Проверяем и создаём таблицы и начальные данные при старте
     await asyncio.gather(
         start_bot(),
         start_web()
