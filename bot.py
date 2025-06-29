@@ -83,6 +83,13 @@ def init_db():
                         print(f"[init_db] Город {city} уже есть в таблице.")
 
                 conn.commit()
+
+                # Синхронизируем sequence, чтобы id не конфликтовали при вставке
+                c.execute(
+                    "SELECT setval(pg_get_serial_sequence('citys', 'id'), COALESCE((SELECT MAX(id) FROM citys), 1), true)"
+                )
+                conn.commit()
+
     except Exception as e:
         print(f"[init_db] Ошибка при работе с БД: {e}")
 
