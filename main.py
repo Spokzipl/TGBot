@@ -5,7 +5,7 @@ import uvicorn
 
 app = FastAPI()
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/Static", StaticFiles(directory="Static"), name="Static")
 
 @app.get("/")
 async def root():
