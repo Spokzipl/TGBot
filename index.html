@@ -95,7 +95,7 @@
 
         const cityEng = cityNameMap[city] || city;
 
-        fetch(`https://myapp-railway-url.up.railway.app/api/city/${encodeURIComponent(cityEng)}`)
+        fetch(`https://tgbot-production-1c7c.up.railway.app/api/city/${encodeURIComponent(cityEng)}`)
           .then(res => {
             if (!res.ok) throw new Error('Ошибка загрузки данных');
             return res.json();
