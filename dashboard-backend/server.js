@@ -1,4 +1,3 @@
-// server.js
 const express = require('express');
 const cors = require('cors');
 const { Pool } = require('pg');
@@ -8,15 +7,13 @@ const port = process.env.PORT || 3000;
 
 app.use(cors());
 
-// Используем переменную окружения DATABASE_URL (Railway её создаёт)
+// Настройки подключения к базе
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
+  connectionString: process.env.DATABASE_URL || 'postgresql://user:password@localhost:5432/yourdb',
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
 });
 
-// API: Получить статистику города
+// API для получения статистики города
 app.get('/api/city/:name', async (req, res) => {
   const cityName = req.params.name;
 
@@ -35,7 +32,6 @@ app.get('/api/city/:name', async (req, res) => {
   }
 });
 
-// Запуск сервера
 app.listen(port, () => {
   console.log(`✅ Сервер запущен на порту ${port}`);
 });
