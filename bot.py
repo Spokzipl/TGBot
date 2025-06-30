@@ -14,6 +14,8 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 
+import multiprocessing
+
 # === Config ===
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -45,7 +47,6 @@ def init_db():
             conn.set_client_encoding('UTF8')
             with conn.cursor() as c:
 
-                # Таблица для логов бота
                 c.execute('''
                     CREATE TABLE IF NOT EXISTS bot_logs (
                         id SERIAL PRIMARY KEY,
@@ -59,7 +60,6 @@ def init_db():
                 ''')
                 print("[init_db] Таблица bot_logs проверена/создана.")
 
-                # Таблица citys с городами и данными + поле created_at
                 c.execute('''
                     CREATE TABLE IF NOT EXISTS citys (
                         id SERIAL PRIMARY KEY,
@@ -72,7 +72,6 @@ def init_db():
                     )
                 ''')
 
-                # Для каждого города проверяем наличие и вставляем, если его нет
                 for city, subs, posts, tg_link, income in cities:
                     c.execute('SELECT 1 FROM citys WHERE city = %s', (city,))
                     if not c.fetchone():
@@ -132,7 +131,6 @@ async def cmd_start(message: types.Message):
     )
     await message.answer("Привет! Вот кнопка для запуска WebApp.", reply_markup=kb)
 
-# Логируем все сообщения (не только /start)
 @router.message()
 async def log_all_messages(message: types.Message):
     allowed = is_user_allowed(message.from_user.id)
@@ -154,18 +152,22 @@ async def root():
 async def health():
     return {"status": "ok"}
 
-async def start_web():
-    config = uvicorn.Config(app, host="0.0.0.0", port=8000)
-    server = uvicorn.Server(config)
-    await server.serve()
+def run_web():
+    uvicorn.run(app, host="0.0.0.0", port=8000)
 
-# === Main Run ===
-async def main():
-    init_db()  # Проверяем и создаём таблицы и начальные данные при старте
-    await asyncio.gather(
-        start_bot(),
-        start_web()
-    )
+def run_bot():
+    asyncio.run(start_bot())
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    # Инициализация БД
+    init_db()
+
+    # Запускаем два процесса: FastAPI и бота
+    p_web = multiprocessing.Process(target=run_web)
+    p_bot = multiprocessing.Process(target=run_bot)
+
+    p_web.start()
+    p_bot.start()
+
+    p_web.join()
+    p_bot.join()
