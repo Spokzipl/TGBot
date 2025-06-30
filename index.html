@@ -4,14 +4,14 @@
   <meta charset="UTF-8" />
   <title>Города с Dashboard и Posts</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-
+  
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-
+  
   <!-- React и ReactDOM -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-
+  
   <!-- Babel -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
@@ -34,7 +34,6 @@
 
       return (
         <div className="w-72 bg-white h-full shadow-md flex flex-col p-4">
-          {/* Город с выпадающим меню */}
           <div className="mb-6 relative">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -64,15 +63,12 @@
             )}
           </div>
 
-          {/* Меню */}
           <nav className="flex flex-col gap-2">
             {pages.map(page => (
               <button
                 key={page}
                 onClick={() => setCurrentPage(page)}
-                className={`text-left py-2 px-4 rounded-lg hover:bg-gray-100 transition ${
-                  currentPage === page ? 'bg-gray-200 font-semibold' : ''
-                }`}
+                className={`text-left py-2 px-4 rounded-lg hover:bg-gray-100 transition ${currentPage === page ? 'bg-gray-200 font-semibold' : ''}`}
               >
                 {page}
               </button>
@@ -82,12 +78,34 @@
       );
     };
 
-    const Dashboard = () => {
-      const stats = [
-        { label: 'Followers', icon: '👥', value: '1.2K' },
-        { label: 'Posts', icon: '📝', value: '340' },
-        { label: 'Earn', icon: '💰', value: '$1200' },
-      ];
+    const Dashboard = ({ city }) => {
+      const [stats, setStats] = useState(null);
+      const [error, setError] = useState(null);
+
+      useEffect(() => {
+        if (!city) return;
+
+        fetch(`http://localhost:3000/api/city/${encodeURIComponent(city)}`)
+          .then(res => {
+            if (!res.ok) throw new Error('Ошибка загрузки данных');
+            return res.json();
+          })
+          .then(data => {
+            setStats([
+              { label: 'Подписчики', icon: '👥', value: data.subs },
+              { label: 'Посты', icon: '📝', value: data.posts },
+              { label: 'Доход', icon: '💰', value: data.income },
+            ]);
+            setError(null);
+          })
+          .catch(err => {
+            setError(err.message);
+            setStats(null);
+          });
+      }, [city]);
+
+      if (error) return <div className="text-red-500">{error}</div>;
+      if (!stats) return <div>Загрузка...</div>;
 
       return (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -104,7 +122,6 @@
       );
     };
 
-    // Моковые данные постов за 24 часа
     const mockPosts = [
       { id: 1, title_ru: 'Пост №1: Новости Вены', approved: false, declined: false },
       { id: 2, title_ru: 'Пост №2: События в Париже', approved: false, declined: false },
@@ -121,13 +138,11 @@
       };
 
       const approvePost = (post) => {
-        // Имитация вызова перевода OpenAI
         setEditingPost(post);
         setTranslatedText(`Перевод поста "${post.title_ru}" (заглушка)`);
       };
 
       const publishPost = () => {
-        // После публикации убираем пост из списка
         setPosts(posts.filter(p => p.id !== editingPost.id));
         setEditingPost(null);
       };
@@ -235,7 +250,7 @@
           />
           <main className="flex-1 p-6 overflow-y-auto">
             <h1 className="text-2xl font-bold mb-6">{selectedCity} — {currentPage}</h1>
-            {currentPage === 'Dashboard' && <Dashboard />}
+            {currentPage === 'Dashboard' && <Dashboard city={selectedCity} />}
             {currentPage === 'Posts' && <Posts />}
             {currentPage !== 'Dashboard' && currentPage !== 'Posts' && <Placeholder title={currentPage} />}
           </main>
