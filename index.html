@@ -28,6 +28,14 @@
       { name: 'Прага', image: '/Static/Prague.png' },
     ];
 
+    // Маппинг русских названий на английские
+    const cityNameMap = {
+      'Вена': 'Vienna',
+      'Париж': 'Paris',
+      'Барселона': 'Barcelona',
+      'Прага': 'Prague',
+    };
+
     const Sidebar = ({ currentPage, setCurrentPage, selectedCity, setSelectedCity }) => {
       const pages = ['Dashboard', 'Posts', 'Charts', 'Settings', 'Finance'];
       const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -85,7 +93,9 @@
       useEffect(() => {
         if (!city) return;
 
-        fetch(`http://localhost:3000/api/city/${encodeURIComponent(city)}`)
+        const cityEng = cityNameMap[city] || city;
+
+        fetch(`http://localhost:3000/api/city/${encodeURIComponent(cityEng)}`)
           .then(res => {
             if (!res.ok) throw new Error('Ошибка загрузки данных');
             return res.json();
