@@ -9,7 +9,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.client.default import DefaultBotProperties
 from aiogram.filters import Command
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
@@ -151,6 +151,30 @@ async def root():
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+# Новый маршрут API для получения данных о городе
+@app.get("/api/city/{city_name}")
+async def get_city(city_name: str):
+    if not DATABASE_URL:
+        raise HTTPException(status_code=500, detail="Database not configured")
+
+    try:
+        with closing(psycopg2.connect(DATABASE_URL)) as conn:
+            with conn.cursor() as c:
+                c.execute("SELECT subs, posts, income, tg_link FROM citys WHERE city = %s", (city_name,))
+                row = c.fetchone()
+                if not row:
+                    raise HTTPException(status_code=404, detail="City not found")
+                subs, posts, income, tg_link = row
+                return {
+                    "city": city_name,
+                    "subs": subs,
+                    "posts": posts,
+                    "income": income,
+                    "tg_link": tg_link
+                }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 def run_web():
     uvicorn.run(app, host="0.0.0.0", port=8000)
