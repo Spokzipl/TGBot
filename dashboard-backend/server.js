@@ -8,10 +8,21 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json()); // Для парсинга JSON в теле запросов
 
+// Логирование каждого запроса (для диагностики)
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  next();
+});
+
 // Настройки подключения к базе
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgresql://user:password@localhost:5432/yourdb',
   ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
+});
+
+// Тестовый роут для проверки работы сервера и маршрутов
+app.get('/api/settings/test', (req, res) => {
+  res.json({ message: 'Test route is working' });
 });
 
 // API для получения статистики города
