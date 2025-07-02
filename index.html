@@ -258,9 +258,7 @@
       }, [city]);
 
       const toggleSetting = async (id, enabled) => {
-        // Отправляем обновление на сервер
         try {
-          const cityEng = cityNameMap[city] || city;
           const settingToUpdate = settings.find(s => s.id === id);
           if (!settingToUpdate) return;
 
@@ -277,8 +275,11 @@
 
           const updatedSetting = await response.json();
 
+          // Приводим enabled к булевому значению (если нужно)
+          updatedSetting.enabled = !!updatedSetting.enabled;
+
           setSettings((prev) =>
-            prev.map(s => s.id === id ? updatedSetting : s)
+            prev.map(s => s.id === id ? { ...s, ...updatedSetting } : s)
           );
           setError(null);
         } catch (err) {
@@ -303,8 +304,10 @@
 
           const updatedSetting = await response.json();
 
+          updatedSetting.enabled = !!updatedSetting.enabled;
+
           setSettings((prev) =>
-            prev.map(s => s.id === id ? updatedSetting : s)
+            prev.map(s => s.id === id ? { ...s, ...updatedSetting } : s)
           );
           setError(null);
         } catch (err) {
