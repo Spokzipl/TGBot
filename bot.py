@@ -47,6 +47,7 @@ def init_db():
             conn.set_client_encoding('UTF8')
             with conn.cursor() as c:
 
+                # Таблица bot_logs
                 c.execute('''
                     CREATE TABLE IF NOT EXISTS bot_logs (
                         id SERIAL PRIMARY KEY,
@@ -60,6 +61,7 @@ def init_db():
                 ''')
                 print("[init_db] Таблица bot_logs проверена/создана.")
 
+                # Таблица citys
                 c.execute('''
                     CREATE TABLE IF NOT EXISTS citys (
                         id SERIAL PRIMARY KEY,
@@ -83,6 +85,19 @@ def init_db():
                         print(f"[init_db] Добавлен город: {city}")
                     else:
                         print(f"[init_db] Город {city} уже есть в таблице.")
+
+                # Таблица settings
+                c.execute('''
+                    CREATE TABLE IF NOT EXISTS settings (
+                        id SERIAL PRIMARY KEY,
+                        city VARCHAR NOT NULL,
+                        name VARCHAR NOT NULL,
+                        enabled BOOLEAN NOT NULL DEFAULT FALSE,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                ''')
+                print("[init_db] Таблица settings проверена/создана.")
 
                 conn.commit()
     except Exception as e:

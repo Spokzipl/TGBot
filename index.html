@@ -28,7 +28,6 @@
       { name: 'Прага', image: '/Static/Prague.png' },
     ];
 
-    // Маппинг русских названий на английские
     const cityNameMap = {
       'Вена': 'Vienna',
       'Париж': 'Paris',
@@ -223,50 +222,105 @@
       <div className="text-xl text-gray-600 font-semibold">{title} страница (в разработке)</div>
     );
 
-    function App() {
-      const [selectedCity, setSelectedCity] = useState(null);
-      const [currentPage, setCurrentPage] = useState('Dashboard');
+    // Новый компонент Settings с настройками по городам
+    const Settings = ({ city }) => {
+      const initialSettings = {
+        Вена: [
+          { id: 1, name: 'Название 1', enabled: true },
+          { id: 2, name: 'Название 2', enabled: false },
+          { id: 3, name: 'Название 3', enabled: true },
+        ],
+        Париж: [
+          { id: 1, name: 'Название A', enabled: false },
+          { id: 2, name: 'Название B', enabled: true },
+          { id: 3, name: 'Название C', enabled: false },
+        ],
+        Барселона: [
+          { id: 1, name: 'Название X', enabled: true },
+          { id: 2, name: 'Название Y', enabled: true },
+          { id: 3, name: 'Название Z', enabled: false },
+        ],
+        Прага: [
+          { id: 1, name: 'Название α', enabled: false },
+          { id: 2, name: 'Название β', enabled: false },
+          { id: 3, name: 'Название γ', enabled: true },
+        ],
+      };
 
-      useEffect(() => {
-        if (window.Telegram?.WebApp) {
-          window.Telegram.WebApp.ready();
-        }
-      }, []);
+      const [settingsByCity, setSettingsByCity] = useState(initialSettings);
 
-      if (!selectedCity) {
-        return (
-          <div className="grid grid-cols-2 gap-4 w-full max-w-md">
-            {cities.map((city) => (
-              <div
-                key={city.name}
-                onClick={() => { setSelectedCity(city.name); setCurrentPage('Dashboard'); }}
-                className="bg-white rounded-2xl p-4 shadow hover:shadow-md transition cursor-pointer flex flex-col items-center"
-              >
-                <img src={city.image} alt={city.name} className="w-20 h-20 mb-3 rounded-xl" />
-                <span className="text-lg font-semibold">{city.name}</span>
-              </div>
-            ))}
-          </div>
-        );
-      }
+      const toggleSetting = (cityName, id) => {
+        setSettingsByCity((prev) => ({
+          ...prev,
+          [cityName]: prev[cityName].map((s) =>
+            s.id === id ? { ...s, enabled: !s.enabled } : s
+          ),
+        }));
+      };
+
+      const changeName = (cityName, id, newName) => {
+        setSettingsByCity((prev) => ({
+          ...prev,
+          [cityName]: prev[cityName].map((s) =>
+            s.id === id ? { ...s, name: newName } : s
+          ),
+        }));
+      };
+
+      const citySettings = settingsByCity[city] || [];
 
       return (
-        <div className="flex w-full h-screen bg-gray-50">
+        <div className="max-w-md bg-white p-6 rounded shadow space-y-4">
+          <h2 className="text-xl font-semibold mb-4">Настройки для города: {city}</h2>
+          {citySettings.length === 0 && <div>Нет настроек для этого города</div>}
+          {citySettings.map(({ id, name, enabled }) => (
+            <div key={id} className="flex items-center justify-between gap-4">
+              <input
+                type="text"
+                className="border rounded px-2 py-1 flex-1"
+                value={name}
+                onChange={(e) => changeName(city, id, e.target.value)}
+              />
+              <label className="inline-flex relative items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="sr-only peer"
+                  checked={enabled}
+                  onChange={() => toggleSetting(city, id)}
+                />
+                <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-blue-600 transition"></div>
+                <div
+                  className={`absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5`}
+                ></div>
+              </label>
+            </div>
+          ))}
+        </div>
+      );
+    };
+
+    const App = () => {
+      const [currentPage, setCurrentPage] = useState('Dashboard');
+      const [selectedCity, setSelectedCity] = useState('Вена');
+
+      return (
+        <div className="flex max-w-7xl w-full h-[90vh] bg-white rounded-lg shadow overflow-hidden">
           <Sidebar
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
             selectedCity={selectedCity}
             setSelectedCity={setSelectedCity}
           />
-          <main className="flex-1 p-6 overflow-y-auto">
-            <h1 className="text-2xl font-bold mb-6">{selectedCity} — {currentPage}</h1>
+          <main className="flex-1 p-6 overflow-auto">
             {currentPage === 'Dashboard' && <Dashboard city={selectedCity} />}
             {currentPage === 'Posts' && <Posts />}
-            {currentPage !== 'Dashboard' && currentPage !== 'Posts' && <Placeholder title={currentPage} />}
+            {currentPage === 'Charts' && <Placeholder title="Charts" />}
+            {currentPage === 'Settings' && <Settings city={selectedCity} />}
+            {currentPage === 'Finance' && <Placeholder title="Finance" />}
           </main>
         </div>
       );
-    }
+    };
 
     ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   </script>
