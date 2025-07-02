@@ -9,22 +9,21 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.client.default import DefaultBotProperties
 from aiogram.filters import Command
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 
 import multiprocessing
+from datetime import datetime
 
 # === Config ===
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Список ID админов из переменной окружения
 ADMINS_TG = os.getenv("ADMINS_TG", "")
 ALLOWED_ADMINS = set(int(uid) for uid in ADMINS_TG.split(",") if uid.strip().isdigit())
 
-# Разрешить всем или только админам
 ALLOW_ALL_USERS_BOT = os.getenv("ALLOW_ALL_USERS_BOT", "false").lower() == "true"
 
 def is_user_allowed(user_id: int) -> bool:
@@ -191,6 +190,76 @@ async def get_city(city_name: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# Новый маршрут API для получения настроек по городу
+@app.get("/api/settings/{city}")
+async def get_settings(city: str):
+    if not DATABASE_URL:
+        raise HTTPException(status_code=500, detail="Database not configured")
+
+    try:
+        with closing(psycopg2.connect(DATABASE_URL)) as conn:
+            with conn.cursor() as c:
+                c.execute("""
+                    SELECT id, name, enabled, created_at, updated_at
+                    FROM settings
+                    WHERE city = %s
+                    ORDER BY id
+                """, (city,))
+                rows = c.fetchall()
+                if not rows:
+                    return []
+                result = []
+                for r in rows:
+                    id_, name, enabled, created_at, updated_at = r
+                    result.append({
+                        "id": id_,
+                        "name": name,
+                        "enabled": enabled,
+                        "created_at": created_at.isoformat() if created_at else None,
+                        "updated_at": updated_at.isoformat() if updated_at else None,
+                    })
+                return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# API для обновления конкретного параметра настроек по ID
+from pydantic import BaseModel
+
+class SettingUpdate(BaseModel):
+    name: str
+    enabled: bool
+
+@app.put("/api/settings/{id}")
+async def update_setting(id: int, data: SettingUpdate):
+    if not DATABASE_URL:
+        raise HTTPException(status_code=500, detail="Database not configured")
+
+    try:
+        with closing(psycopg2.connect(DATABASE_URL)) as conn:
+            with conn.cursor() as c:
+                c.execute("""
+                    UPDATE settings
+                    SET name = %s, enabled = %s, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = %s
+                    RETURNING id, city, name, enabled, created_at, updated_at
+                """, (data.name, data.enabled, id))
+                row = c.fetchone()
+                if not row:
+                    raise HTTPException(status_code=404, detail="Setting not found")
+
+                id_, city, name, enabled, created_at, updated_at = row
+                return {
+                    "id": id_,
+                    "city": city,
+                    "name": name,
+                    "enabled": enabled,
+                    "created_at": created_at.isoformat() if created_at else None,
+                    "updated_at": updated_at.isoformat() if updated_at else None,
+                }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 def run_web():
     uvicorn.run(app, host="0.0.0.0", port=8000)
 
@@ -198,10 +267,8 @@ def run_bot():
     asyncio.run(start_bot())
 
 if __name__ == "__main__":
-    # Инициализация БД
     init_db()
 
-    # Запускаем два процесса: FastAPI и бота
     p_web = multiprocessing.Process(target=run_web)
     p_bot = multiprocessing.Process(target=run_bot)
 
