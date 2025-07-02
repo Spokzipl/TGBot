@@ -222,76 +222,120 @@
       <div className="text-xl text-gray-600 font-semibold">{title} страница (в разработке)</div>
     );
 
-    // Новый компонент Settings с настройками по городам
+    // Новый компонент Settings с динамической загрузкой из базы
     const Settings = ({ city }) => {
-      const initialSettings = {
-        Вена: [
-          { id: 1, name: 'Название 1', enabled: true },
-          { id: 2, name: 'Название 2', enabled: false },
-          { id: 3, name: 'Название 3', enabled: true },
-        ],
-        Париж: [
-          { id: 1, name: 'Название A', enabled: false },
-          { id: 2, name: 'Название B', enabled: true },
-          { id: 3, name: 'Название C', enabled: false },
-        ],
-        Барселона: [
-          { id: 1, name: 'Название X', enabled: true },
-          { id: 2, name: 'Название Y', enabled: true },
-          { id: 3, name: 'Название Z', enabled: false },
-        ],
-        Прага: [
-          { id: 1, name: 'Название α', enabled: false },
-          { id: 2, name: 'Название β', enabled: false },
-          { id: 3, name: 'Название γ', enabled: true },
-        ],
+      const [settings, setSettings] = useState(null);
+      const [error, setError] = useState(null);
+      const [loading, setLoading] = useState(false);
+
+      useEffect(() => {
+        if (!city) {
+          setSettings(null);
+          return;
+        }
+
+        const cityEng = cityNameMap[city] || city;
+
+        setLoading(true);
+        fetch(`https://tgbot-production-1c7c.up.railway.app/api/settings/${encodeURIComponent(cityEng)}`)
+          .then(res => {
+            if (!res.ok) throw new Error('Ошибка загрузки настроек');
+            return res.json();
+          })
+          .then(data => {
+            // Сортируем по id
+            data.sort((a, b) => a.id - b.id);
+            setSettings(data);
+            setError(null);
+          })
+          .catch(err => {
+            setError(err.message);
+            setSettings(null);
+          })
+          .finally(() => {
+            setLoading(false);
+          });
+      }, [city]);
+
+      const toggleSetting = async (id, enabled) => {
+        // Отправляем обновление на сервер
+        try {
+          const cityEng = cityNameMap[city] || city;
+          const settingToUpdate = settings.find(s => s.id === id);
+          if (!settingToUpdate) return;
+
+          const updatedEnabled = !enabled;
+          const updatedName = settingToUpdate.name;
+
+          const response = await fetch(`https://tgbot-production-1c7c.up.railway.app/api/settings/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: updatedName, enabled: updatedEnabled }),
+          });
+
+          if (!response.ok) throw new Error('Ошибка обновления параметра');
+
+          const updatedSetting = await response.json();
+
+          setSettings((prev) =>
+            prev.map(s => s.id === id ? updatedSetting : s)
+          );
+          setError(null);
+        } catch (err) {
+          setError(err.message);
+        }
       };
 
-      const [settingsByCity, setSettingsByCity] = useState(initialSettings);
+      const changeName = async (id, newName) => {
+        try {
+          const settingToUpdate = settings.find(s => s.id === id);
+          if (!settingToUpdate) return;
 
-      const toggleSetting = (cityName, id) => {
-        setSettingsByCity((prev) => ({
-          ...prev,
-          [cityName]: prev[cityName].map((s) =>
-            s.id === id ? { ...s, enabled: !s.enabled } : s
-          ),
-        }));
+          const updatedEnabled = settingToUpdate.enabled;
+
+          const response = await fetch(`https://tgbot-production-1c7c.up.railway.app/api/settings/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: newName, enabled: updatedEnabled }),
+          });
+
+          if (!response.ok) throw new Error('Ошибка обновления параметра');
+
+          const updatedSetting = await response.json();
+
+          setSettings((prev) =>
+            prev.map(s => s.id === id ? updatedSetting : s)
+          );
+          setError(null);
+        } catch (err) {
+          setError(err.message);
+        }
       };
 
-      const changeName = (cityName, id, newName) => {
-        setSettingsByCity((prev) => ({
-          ...prev,
-          [cityName]: prev[cityName].map((s) =>
-            s.id === id ? { ...s, name: newName } : s
-          ),
-        }));
-      };
-
-      const citySettings = settingsByCity[city] || [];
+      if (loading) return <div>Загрузка настроек...</div>;
+      if (error) return <div className="text-red-500">Ошибка: {error}</div>;
+      if (!settings || settings.length === 0) return <div>Нет настроек для этого города</div>;
 
       return (
         <div className="max-w-md bg-white p-6 rounded shadow space-y-4">
           <h2 className="text-xl font-semibold mb-4">Настройки для города: {city}</h2>
-          {citySettings.length === 0 && <div>Нет настроек для этого города</div>}
-          {citySettings.map(({ id, name, enabled }) => (
+          {settings.map(({ id, name, enabled }) => (
             <div key={id} className="flex items-center justify-between gap-4">
               <input
                 type="text"
                 className="border rounded px-2 py-1 flex-1"
                 value={name}
-                onChange={(e) => changeName(city, id, e.target.value)}
+                onChange={e => changeName(id, e.target.value)}
               />
               <label className="inline-flex relative items-center cursor-pointer">
                 <input
                   type="checkbox"
                   className="sr-only peer"
                   checked={enabled}
-                  onChange={() => toggleSetting(city, id)}
+                  onChange={() => toggleSetting(id, enabled)}
                 />
                 <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-blue-600 transition"></div>
-                <div
-                  className={`absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5`}
-                ></div>
+                <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full peer-checked:translate-x-5 transition"></div>
               </label>
             </div>
           ))}
@@ -300,24 +344,36 @@
     };
 
     const App = () => {
-      const [currentPage, setCurrentPage] = useState('Dashboard');
       const [selectedCity, setSelectedCity] = useState('Вена');
+      const [currentPage, setCurrentPage] = useState('Dashboard');
+
+      let pageComponent = null;
+
+      switch (currentPage) {
+        case 'Dashboard':
+          pageComponent = <Dashboard city={selectedCity} />;
+          break;
+        case 'Posts':
+          pageComponent = <Posts />;
+          break;
+        case 'Settings':
+          pageComponent = <Settings city={selectedCity} />;
+          break;
+        default:
+          pageComponent = <Placeholder title={currentPage} />;
+      }
 
       return (
-        <div className="flex max-w-7xl w-full h-[90vh] bg-white rounded-lg shadow overflow-hidden">
+        <div className="flex w-full h-[600px] rounded-xl overflow-hidden shadow-lg bg-white">
           <Sidebar
             currentPage={currentPage}
             setCurrentPage={setCurrentPage}
             selectedCity={selectedCity}
             setSelectedCity={setSelectedCity}
           />
-          <main className="flex-1 p-6 overflow-auto">
-            {currentPage === 'Dashboard' && <Dashboard city={selectedCity} />}
-            {currentPage === 'Posts' && <Posts />}
-            {currentPage === 'Charts' && <Placeholder title="Charts" />}
-            {currentPage === 'Settings' && <Settings city={selectedCity} />}
-            {currentPage === 'Finance' && <Placeholder title="Finance" />}
-          </main>
+          <div className="flex-1 p-6 overflow-auto">
+            {pageComponent}
+          </div>
         </div>
       );
     };

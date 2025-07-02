@@ -44,7 +44,8 @@ app.get('/api/settings/:city', async (req, res) => {
     if (result.rows.length > 0) {
       res.json(result.rows);
     } else {
-      res.status(404).json({ error: 'Настройки для города не найдены' });
+      // Возвращаем пустой массив, чтобы фронтенд не ломался, если настроек нет
+      res.json([]);
     }
   } catch (err) {
     console.error(err);
